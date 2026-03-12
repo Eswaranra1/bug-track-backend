@@ -78,8 +78,11 @@ exports.forgotPassword = async (req, res) => {
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
     await user.save();
 
+    // Dynamically get the frontend URL so this works on laptop, mobile, and Vercel!
+    const clientUrl = req.headers.origin || process.env.CLIENT_URL || "http://localhost:5173";
+
     // Build the reset URL (uses raw token in URL, hashed one in DB)
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${rawToken}`;
+    const resetUrl = `${clientUrl}/reset-password/${rawToken}`;
 
     // Send email
     await transporter.sendMail({
