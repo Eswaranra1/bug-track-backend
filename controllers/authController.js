@@ -20,16 +20,16 @@ exports.register = async (req, res) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ success: false, error: "User already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ name, email, password: hashedPassword });
     await user.save();
 
-    res.status(201).json({ message: "User registered successfully" });
+    res.status(200).json({ success: true, message: "User registered successfully" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -40,21 +40,21 @@ exports.login = async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "User not found" });
+      return res.status(400).json({ success: false, error: "User not found" });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: "Invalid credentials" });
+      return res.status(400).json({ success: false, error: "Invalid credentials" });
     }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRES_IN || "7d",
     });
 
-    res.json({ token });
+    res.json({ success: true, token });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -66,7 +66,7 @@ exports.forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       // Return success anyway to avoid email enumeration
-      return res.json({ message: "If that email exists, a reset link has been sent." });
+      return res.json({ success: true, message: "If that email exists, a reset link has been sent." });
     }
 
     // Generate a secure random token
@@ -114,10 +114,10 @@ exports.forgotPassword = async (req, res) => {
       `,
     });
 
-    res.json({ message: "If that email exists, a reset link has been sent." });
+    res.json({ success: true, message: "If that email exists, a reset link has been sent." });
   } catch (error) {
     console.error("Forgot password error:", error.message);
-    res.status(500).json({ error: "Failed to send reset email. Check your email config." });
+    res.status(500).json({ success: false, error: "Failed to send reset email. Check your email config." });
   }
 };
 
@@ -128,7 +128,7 @@ exports.resetPassword = async (req, res) => {
     const { password } = req.body;
 
     if (!password || password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+      return res.status(400).json({ success: false, error: "Password must be at least 6 characters" });
     }
 
     // Hash the incoming raw token to compare with DB
@@ -140,7 +140,7 @@ exports.resetPassword = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(400).json({ message: "Reset link is invalid or has expired." });
+      return res.status(400).json({ success: false, error: "Reset link is invalid or has expired." });
     }
 
     // Update password and clear token fields
@@ -149,8 +149,8 @@ exports.resetPassword = async (req, res) => {
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    res.json({ message: "Password reset successfully. You can now sign in." });
+    res.json({ success: true, message: "Password reset successfully. You can now sign in." });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
