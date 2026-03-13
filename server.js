@@ -9,10 +9,31 @@ const bugRoutes = require("./routes/bugRoutes");
 
 const app = express();
 
+// Allow frontend origin(s). No trailing slash. On Render set CLIENT_URL=https://bug-track-frontend.vercel.app
+function normalizeOrigin(url) {
+  if (!url || typeof url !== "string") return "";
+  return url.replace(/\/+$/, "");
+}
+const allowedOrigins = [
+  normalizeOrigin(process.env.CLIENT_URL),
+  "https://bug-track-frontend.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:3000",
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin(origin, callback) {
+      if (!origin) return callback(null, true);
+      const normalized = normalizeOrigin(origin);
+      if (allowedOrigins.includes(normalized)) return callback(null, origin);
+      callback(null, false);
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 app.use(express.json());
