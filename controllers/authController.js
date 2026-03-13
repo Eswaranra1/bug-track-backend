@@ -157,52 +157,93 @@ exports.getResetPasswordPage = (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reset password – BugTrack</title>
+  <title>Choose a new password – BugTrack</title>
   <style>
     * { box-sizing: border-box; }
-    body { font-family: system-ui, sans-serif; background: #0f172a; color: #f1f5f9; min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; padding: 16px; }
-    .card { background: #1e293b; border-radius: 12px; padding: 28px; max-width: 400px; width: 100%; }
-    h1 { margin: 0 0 8px; font-size: 1.5rem; }
-    p { color: #94a3b8; font-size: 14px; margin: 0 0 20px; }
-    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #f1f5f9; font-size: 16px; margin-bottom: 16px; }
-    button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; font-weight: 600; cursor: pointer; font-size: 16px; }
-    button:disabled { opacity: 0.6; cursor: not-allowed; }
-    .msg { margin-top: 16px; font-size: 14px; }
-    .err { color: #f87171; }
-    .ok { color: #4ade80; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #f1f5f9; min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .card { background: #1e293b; border-radius: 16px; padding: 32px; max-width: 420px; width: 100%; box-shadow: 0 4px 24px rgba(0,0,0,0.2); }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
+    .brand-icon { width: 36px; height: 36px; background: linear-gradient(135deg,#6366f1,#8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .brand-text { font-size: 1.25rem; font-weight: 700; }
+    h1 { margin: 0 0 6px; font-size: 1.5rem; font-weight: 700; }
+    .hint { color: #94a3b8; font-size: 14px; margin: 0 0 24px; }
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 13px; font-weight: 500; color: #cbd5e1; margin-bottom: 6px; }
+    .input-wrap { position: relative; }
+    .input-wrap input { width: 100%; padding: 12px 44px 12px 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: #f1f5f9; font-size: 15px; }
+    .input-wrap input:focus { outline: none; border-color: #6366f1; }
+    .toggle-vis { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px; }
+    .toggle-vis:hover { color: #f1f5f9; }
+    .btn { width: 100%; padding: 14px; border-radius: 10px; border: none; background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; font-weight: 600; cursor: pointer; font-size: 15px; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .msg { margin-top: 14px; font-size: 14px; }
+    .msg.err { color: #f87171; }
+    .msg.ok { color: #4ade80; }
+    .back { display: block; text-align: center; margin-top: 20px; font-size: 14px; color: #94a3b8; text-decoration: none; }
+    .back:hover { color: #cbd5e1; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>🐛 BugTrack</h1>
-    <p>Enter your new password (at least 6 characters).</p>
+    <div class="brand">
+      <div class="brand-icon">🐛</div>
+      <span class="brand-text">BugTrack</span>
+    </div>
+    <h1>Choose a new password</h1>
+    <p class="hint">Must be at least 6 characters</p>
     <form id="form">
-      <input type="password" name="password" placeholder="New password" minlength="6" required autocomplete="new-password">
-      <button type="submit" id="btn">Reset password</button>
+      <div class="field">
+        <label for="password">New password</label>
+        <div class="input-wrap">
+          <input type="password" id="password" name="password" placeholder="New password" minlength="6" required autocomplete="new-password">
+          <button type="button" class="toggle-vis" id="t1" aria-label="Show password">👁</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="confirm">Confirm password</label>
+        <div class="input-wrap">
+          <input type="password" id="confirm" name="confirm" placeholder="Confirm password" minlength="6" required autocomplete="new-password">
+          <button type="button" class="toggle-vis" id="t2" aria-label="Show password">👁</button>
+        </div>
+      </div>
+      <button type="submit" class="btn" id="btn">Reset Password →</button>
     </form>
     <div id="msg" class="msg"></div>
+    <a href="${loginUrl}" class="back">– Back to sign in</a>
   </div>
   <script>
     var form = document.getElementById("form");
     var btn = document.getElementById("btn");
     var msg = document.getElementById("msg");
+    var pw = document.getElementById("password");
+    var conf = document.getElementById("confirm");
     var actionUrl = ${JSON.stringify(actionUrl)};
     var loginUrl = ${JSON.stringify(loginUrl)};
+    document.getElementById("t1").onclick = function() {
+      pw.type = pw.type === "password" ? "text" : "password";
+      this.textContent = pw.type === "password" ? "👁" : "🙈";
+    };
+    document.getElementById("t2").onclick = function() {
+      conf.type = conf.type === "password" ? "text" : "password";
+      this.textContent = conf.type === "password" ? "👁" : "🙈";
+    };
     form.onsubmit = function(e) {
       e.preventDefault();
-      var password = form.password.value;
-      if (password.length < 6) { msg.textContent = "Password must be at least 6 characters."; msg.className = "msg err"; return; }
-      btn.disabled = true;
+      var p = pw.value, c = conf.value;
       msg.textContent = "";
+      msg.className = "msg";
+      if (p.length < 6) { msg.textContent = "Password must be at least 6 characters."; msg.className = "msg err"; return; }
+      if (p !== c) { msg.textContent = "Passwords do not match."; msg.className = "msg err"; return; }
+      btn.disabled = true;
       fetch(actionUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: password })
+        body: JSON.stringify({ password: p })
       })
       .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
       .then(function(r) {
         if (r.ok) {
-          msg.textContent = "Password reset successfully. Redirecting to login…";
+          msg.textContent = "Password reset successfully. Redirecting to sign in…";
           msg.className = "msg ok";
           setTimeout(function() { window.location.href = loginUrl; }, 2000);
         } else {
