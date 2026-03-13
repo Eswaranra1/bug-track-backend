@@ -9,6 +9,9 @@ const bugRoutes = require("./routes/bugRoutes");
 
 const app = express();
 
+// Trust proxy (Render, etc.) so req.protocol and X-Forwarded-Proto are correct; avoids mixed-content block on reset-password page.
+app.set("trust proxy", 1);
+
 // Allow frontend origin(s). No trailing slash. On Render set CLIENT_URL=https://bug-track-frontend.vercel.app
 function normalizeOrigin(url) {
   if (!url || typeof url !== "string") return "";

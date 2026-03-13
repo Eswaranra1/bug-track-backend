@@ -166,7 +166,9 @@ exports.forgotPassword = async (req, res) => {
 /* ── Reset Password page (GET) ───────────────────────────── */
 exports.getResetPasswordPage = (req, res) => {
   const token = req.params.token;
-  const apiBase = process.env.API_URL || `${req.protocol}://${req.get("host")}`;
+  // Use API_URL when set (required on Render). Else respect X-Forwarded-Proto so fetch is same scheme as page (avoids mixed-content block).
+  const protocol = req.get("x-forwarded-proto") === "https" ? "https" : req.protocol;
+  const apiBase = process.env.API_URL || `${protocol}://${req.get("host")}`;
   const actionUrl = `${apiBase.replace(/\/+$/, "")}/api/auth/reset-password/${encodeURIComponent(token)}`;
   const loginUrl = process.env.CLIENT_URL || "http://localhost:5173";
   res.setHeader("Content-Type", "text/html");
