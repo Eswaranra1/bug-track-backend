@@ -105,11 +105,9 @@ exports.forgotPassword = async (req, res) => {
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
     await user.save();
 
-    // Dynamically get the frontend URL so this works on laptop, mobile, and Vercel!
-    const clientUrl = req.headers.origin || process.env.CLIENT_URL || "http://localhost:5173";
-
-    // Build the reset URL (uses raw token in URL, hashed one in DB)
-    const resetUrl = `${clientUrl}/reset-password/${rawToken}`;
+    // Reset link points to backend (e.g. https://bug-track-backend-jz4l.onrender.com/api/auth/reset-password/TOKEN)
+    const apiBase = process.env.API_URL || `${req.protocol}://${req.get("host")}`;
+    const resetUrl = `${apiBase.replace(/\/+$/, "")}/api/auth/reset-password/${rawToken}`;
 
     const html = `
         <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#10141f;border-radius:16px;color:#f0f4ff;">
@@ -146,7 +144,86 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-/* ── Reset Password ────────────────────────────────────────── */
+/* ── Reset Password page (GET) ───────────────────────────── */
+exports.getResetPasswordPage = (req, res) => {
+  const token = req.params.token;
+  const apiBase = process.env.API_URL || `${req.protocol}://${req.get("host")}`;
+  const actionUrl = `${apiBase.replace(/\/+$/, "")}/api/auth/reset-password/${encodeURIComponent(token)}`;
+  const loginUrl = process.env.CLIENT_URL || "http://localhost:5173";
+  res.setHeader("Content-Type", "text/html");
+  res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset password – BugTrack</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #f1f5f9; min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .card { background: #1e293b; border-radius: 12px; padding: 28px; max-width: 400px; width: 100%; }
+    h1 { margin: 0 0 8px; font-size: 1.5rem; }
+    p { color: #94a3b8; font-size: 14px; margin: 0 0 20px; }
+    input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #f1f5f9; font-size: 16px; margin-bottom: 16px; }
+    button { width: 100%; padding: 12px; border-radius: 8px; border: none; background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; font-weight: 600; cursor: pointer; font-size: 16px; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .msg { margin-top: 16px; font-size: 14px; }
+    .err { color: #f87171; }
+    .ok { color: #4ade80; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🐛 BugTrack</h1>
+    <p>Enter your new password (at least 6 characters).</p>
+    <form id="form">
+      <input type="password" name="password" placeholder="New password" minlength="6" required autocomplete="new-password">
+      <button type="submit" id="btn">Reset password</button>
+    </form>
+    <div id="msg" class="msg"></div>
+  </div>
+  <script>
+    var form = document.getElementById("form");
+    var btn = document.getElementById("btn");
+    var msg = document.getElementById("msg");
+    var actionUrl = ${JSON.stringify(actionUrl)};
+    var loginUrl = ${JSON.stringify(loginUrl)};
+    form.onsubmit = function(e) {
+      e.preventDefault();
+      var password = form.password.value;
+      if (password.length < 6) { msg.textContent = "Password must be at least 6 characters."; msg.className = "msg err"; return; }
+      btn.disabled = true;
+      msg.textContent = "";
+      fetch(actionUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: password })
+      })
+      .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+      .then(function(r) {
+        if (r.ok) {
+          msg.textContent = "Password reset successfully. Redirecting to login…";
+          msg.className = "msg ok";
+          setTimeout(function() { window.location.href = loginUrl; }, 2000);
+        } else {
+          msg.textContent = r.data.message || "Something went wrong.";
+          msg.className = "msg err";
+          btn.disabled = false;
+        }
+      })
+      .catch(function() {
+        msg.textContent = "Network error. Try again.";
+        msg.className = "msg err";
+        btn.disabled = false;
+      });
+    };
+  </script>
+</body>
+</html>
+  `);
+};
+
+/* ── Reset Password (POST) ─────────────────────────────────── */
 exports.resetPassword = async (req, res) => {
   try {
     const { token } = req.params;
