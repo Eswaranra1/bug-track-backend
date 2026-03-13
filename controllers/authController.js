@@ -203,6 +203,16 @@ exports.getResetPasswordPage = (req, res) => {
     .msg.ok { color: #4ade80; }
     .back { display: block; text-align: center; margin-top: 20px; font-size: 14px; color: #94a3b8; text-decoration: none; }
     .back:hover { color: #cbd5e1; }
+    .strength-wrap { margin-top: 8px; }
+    .strength-bar { height: 3px; border-radius: 4px; background: #334155; overflow: hidden; }
+    .strength-bar-inner { height: 100%; border-radius: 4px; transition: width 0.2s ease; }
+    .strength-bar-inner.short { width: 25%; background: #f87171; }
+    .strength-bar-inner.moderate { width: 60%; background: #eab308; }
+    .strength-bar-inner.strong { width: 100%; background: #22c55e; }
+    .strength-text { font-size: 11px; margin-top: 4px; }
+    .strength-text.short { color: #f87171; }
+    .strength-text.moderate { color: #eab308; }
+    .strength-text.strong { color: #22c55e; }
   </style>
 </head>
 <body>
@@ -219,6 +229,10 @@ exports.getResetPasswordPage = (req, res) => {
         <div class="input-wrap">
           <input type="password" id="password" name="password" placeholder="New password" minlength="6" required autocomplete="new-password">
           <button type="button" class="toggle-vis" id="t1" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
+        <div class="strength-wrap" id="strengthWrap" style="display:none">
+          <div class="strength-bar"><div class="strength-bar-inner short" id="strengthBar"></div></div>
+          <span class="strength-text short" id="strengthText"></span>
         </div>
       </div>
       <div class="field">
@@ -252,6 +266,18 @@ exports.getResetPasswordPage = (req, res) => {
       conf.type = conf.type === "password" ? "text" : "password";
       this.innerHTML = conf.type === "password" ? eyeOpen : eyeSlash;
       this.setAttribute("aria-label", conf.type === "password" ? "Show password" : "Hide password");
+    };
+    var strengthWrap = document.getElementById("strengthWrap");
+    var strengthBar = document.getElementById("strengthBar");
+    var strengthText = document.getElementById("strengthText");
+    pw.oninput = function() {
+      var len = pw.value.length;
+      var strength = len >= 10 ? "Strong" : len >= 6 ? "Moderate" : len > 0 ? "Too short" : "";
+      if (!strength) { strengthWrap.style.display = "none"; return; }
+      strengthWrap.style.display = "block";
+      strengthBar.className = "strength-bar-inner " + (len >= 10 ? "strong" : len >= 6 ? "moderate" : "short");
+      strengthText.textContent = strength;
+      strengthText.className = "strength-text " + (len >= 10 ? "strong" : len >= 6 ? "moderate" : "short");
     };
     form.onsubmit = function(e) {
       e.preventDefault();
