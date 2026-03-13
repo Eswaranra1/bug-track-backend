@@ -2,16 +2,43 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-/* ── Nodemailer transporter ────────────────────────────────── */
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const FROM_EMAIL = process.env.RESEND_FROM || "BugTrack <onboarding@resend.dev>";
+
+/** Send email via Resend. Throws if RESEND_API_KEY is missing or send fails. */
+async function sendEmail({ to, subject, html, text }) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY is not set");
+  }
+  const { data, error } = await resend.emails.send({
+    from: FROM_EMAIL,
+    to: Array.isArray(to) ? to : [to],
+    subject,
+    ...(html && { html }),
+    ...(text && { text }),
+  });
+  if (error) throw new Error(error.message || JSON.stringify(error));
+  return data;
+}
+
+/* ── Test Email ────────────────────────────────────────────── */
+exports.testEmail = async (req, res) => {
+  try {
+    const to = process.env.RESEND_TEST_TO || process.env.EMAIL_USER;
+    if (!to) return res.status(400).send("Set RESEND_TEST_TO or EMAIL_USER in .env for test recipient.");
+    await sendEmail({
+      to,
+      subject: "BugTrack Email Test",
+      text: "Email working!",
+    });
+    res.send("Email sent successfully");
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+};
 
 /* ── Register ──────────────────────────────────────────────── */
 exports.register = async (req, res) => {
@@ -84,12 +111,7 @@ exports.forgotPassword = async (req, res) => {
     // Build the reset URL (uses raw token in URL, hashed one in DB)
     const resetUrl = `${clientUrl}/reset-password/${rawToken}`;
 
-    // Send email
-    await transporter.sendMail({
-      from: `"BugTrack" <${process.env.EMAIL_USER}>`,
-      to: user.email,
-      subject: "Reset your BugTrack password",
-      html: `
+    const html = `
         <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;padding:32px;background:#10141f;border-radius:16px;color:#f0f4ff;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;">
             <div style="width:36px;height:36px;background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;">🐛</div>
@@ -114,13 +136,13 @@ exports.forgotPassword = async (req, res) => {
             <a href="${resetUrl}" style="color:#818cf8;word-break:break-all;">${resetUrl}</a>
           </p>
         </div>
-      `,
-    });
+      `;
+    await sendEmail({ to: user.email, subject: "Reset your BugTrack password", html });
 
     res.json({ message: "If that email exists, a reset link has been sent." });
   } catch (error) {
     console.error("Forgot password error:", error.message);
-    res.status(500).json({ message: "Failed to send reset email. Check your email config." });
+    res.status(500).json({ message: "Failed to send reset email. Check RESEND_API_KEY and Resend dashboard." });
   }
 };
 

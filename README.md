@@ -28,7 +28,7 @@ Built with Node.js · Express · MongoDB · JWT Authentication
 | Feature | Description |
 |---|---|
 | 🔐 **JWT Authentication** | Stateless auth using signed JSON Web Tokens |
-| 📧 **Password Reset via Email** | Secure token-based forgot/reset password flow using Nodemailer + Gmail |
+| 📧 **Password Reset via Email** | Secure token-based forgot/reset password flow using Resend |
 | 🐛 **Bug CRUD** | Create, read, update, and delete bug reports |
 | 👤 **User Isolation** | Each user only sees their own bugs |
 | 🔒 **Bcrypt Hashing** | All passwords hashed with bcryptjs (salt rounds: 10) |
@@ -176,16 +176,15 @@ MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/<dbname>?retryWrit
 JWT_SECRET=your_super_secret_key_here
 JWT_EXPIRES_IN=7d
 
-# Email (Gmail)
-EMAIL_USER=youremail@gmail.com
-EMAIL_PASS=your_gmail_app_password
+# Email (Resend — https://resend.com)
+RESEND_API_KEY=re_xxxxxxxxxxxx
+RESEND_FROM=BugTrack <onboarding@resend.dev>
 
 # Frontend URL (for password reset links)
-CLIENT_URL=http://localhost:3000
+CLIENT_URL=http://localhost:5173
 ```
 
-> 💡 `EMAIL_PASS` should be a **Gmail App Password**, not your Google account password.  
-> Enable it at: [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
+> 💡 Get your API key at [resend.com](https://resend.com). Verify a domain to send from your own address; otherwise use `onboarding@resend.dev` (limited to your sign-up email on free tier).
 
 ---
 
@@ -221,7 +220,7 @@ The API will be available at `http://localhost:5000`.
 | `mongoose` | ^9.3.0 | MongoDB ODM |
 | `jsonwebtoken` | ^9.0.3 | JWT creation & verification |
 | `bcryptjs` | ^3.0.3 | Password hashing |
-| `nodemailer` | ^8.0.2 | Email delivery |
+| `resend` | ^6.9.3 | Email delivery (password reset, test email) |
 | `dotenv` | ^17.3.1 | Environment variable loading |
 | `cors` | ^2.8.6 | Cross-origin request handling |
 | `nodemon` | ^3.1.14 | Dev server auto-reload |

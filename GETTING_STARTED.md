@@ -14,7 +14,7 @@ Make sure you have the following installed before proceeding:
 | **npm** | 8+ | Comes with Node.js |
 | **Git** | Any | [git-scm.com](https://git-scm.com) |
 | **MongoDB Atlas account** | — | [mongodb.com/atlas](https://www.mongodb.com/atlas) |
-| **Gmail account** | — | For email (password reset feature) |
+| **Resend account** | — | For email (password reset) — [resend.com](https://resend.com) |
 
 ---
 
@@ -63,15 +63,14 @@ MONGO_URI=mongodb://localhost:27017/bugtrack
 
 ---
 
-## Step 4 — Set Up Gmail App Password (for Email Feature)
+## Step 4 — Set Up Resend (for Email Feature)
 
-The password reset feature sends emails via Gmail. You need a **Gmail App Password** — not your regular password.
+The password reset feature sends emails via [Resend](https://resend.com).
 
-1. Go to your Google Account → [Security](https://myaccount.google.com/security)
-2. Enable **2-Step Verification** (required).
-3. Go to [App Passwords](https://myaccount.google.com/apppasswords).
-4. Select app: **Mail** → device: **Other** → type `BugTrack` → click **Generate**.
-5. Copy the 16-character app password shown.
+1. Sign up at [resend.com](https://resend.com).
+2. Go to **API Keys** and create a key (e.g. "BugTrack").
+3. Copy the key (starts with `re_`). You will add it to `.env` as `RESEND_API_KEY`.
+4. (Optional) To send to any email address, verify a domain under **Domains**. Otherwise you can use `onboarding@resend.dev` (free tier may limit recipients).
 
 ---
 
@@ -100,12 +99,12 @@ MONGO_URI=mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/bugtrac
 JWT_SECRET=change_this_to_a_long_random_secret
 JWT_EXPIRES_IN=7d
 
-# Email (Gmail)
-EMAIL_USER=yourgmail@gmail.com
-EMAIL_PASS=abcd efgh ijkl mnop
+# Email (Resend)
+RESEND_API_KEY=re_xxxxxxxxxxxx
+RESEND_FROM=BugTrack <onboarding@resend.dev>
 
 # Frontend URL (used in password reset emails)
-CLIENT_URL=http://localhost:3000
+CLIENT_URL=http://localhost:5173
 ```
 
 > ⚠️ **Never commit `.env` to Git.** It's already listed in `.gitignore`.
@@ -217,7 +216,7 @@ bug-track-backend/
 | `MongoNetworkError` | Wrong `MONGO_URI` or IP not whitelisted | Double-check Atlas Network Access |
 | `CastError` or auth fails | Missing or wrong JWT | Ensure `JWT_SECRET` matches between `.env` and the token that was signed |
 | `Invalid credentials` | Wrong password | Re-check what you registered with |
-| Email not sent | Wrong `EMAIL_PASS` | Generate a new Gmail App Password |
+| Email not sent | Wrong or missing `RESEND_API_KEY` | Check API key at [resend.com](https://resend.com) |
 | `No token` (401) | Missing Authorization header | Always pass the JWT in the `Authorization` header |
 | Port already in use | Another server on port 5000 | Change `PORT` in `.env` |
 
@@ -229,7 +228,7 @@ bug-track-backend/
 - [Mongoose Docs](https://mongoosejs.com/docs/)
 - [MongoDB Atlas Guide](https://www.mongodb.com/docs/atlas/getting-started/)
 - [JWT Introduction](https://jwt.io/introduction)
-- [Gmail App Passwords](https://support.google.com/accounts/answer/185833)
+- [Resend Docs](https://resend.com/docs)
 
 ---
 
