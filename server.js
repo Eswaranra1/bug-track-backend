@@ -70,12 +70,23 @@ app.use("/api", (req, res) => {
 
 // Global error handler: sanitize messages in production, handle multer/file errors
 app.use((err, req, res, next) => {
-  if (err.message && (err.message.includes("allowed") || err.code === "LIMIT_FILE_SIZE")) {
-    return res.status(400).json({ message: err.code === "LIMIT_FILE_SIZE" ? "File too large (max 5MB)" : "Invalid file type. Only images and PDFs are allowed." });
+  if (
+    err.message &&
+    (err.message.includes("allowed") || err.code === "LIMIT_FILE_SIZE")
+  ) {
+    return res
+      .status(400)
+      .json({
+        message:
+          err.code === "LIMIT_FILE_SIZE"
+            ? "File too large (max 5MB)"
+            : "Invalid file type. Only images and PDFs are allowed.",
+      });
   }
   const status = err.status || err.statusCode || 500;
   const isProd = process.env.NODE_ENV === "production";
-  const message = isProd && status === 500 ? "Server error" : (err.message || "Server error");
+  const message =
+    isProd && status === 500 ? "Server error" : err.message || "Server error";
   if (status >= 500) console.error(err);
   res.status(status).json({ message });
 });

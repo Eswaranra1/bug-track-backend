@@ -175,12 +175,10 @@ exports.forgotPassword = async (req, res) => {
     res.json({ message: "If that email exists, a reset link has been sent." });
   } catch (error) {
     console.error("Forgot password error:", error.message);
-    res
-      .status(500)
-      .json({
-        message:
-          "Failed to send reset email. Check RESEND_API_KEY and Resend dashboard.",
-      });
+    res.status(500).json({
+      message:
+        "Failed to send reset email. Check RESEND_API_KEY and Resend dashboard.",
+    });
   }
 };
 
@@ -188,7 +186,8 @@ exports.forgotPassword = async (req, res) => {
 exports.getResetPasswordPage = (req, res) => {
   const token = req.params.token;
   // Use API_URL when set (required on Render). Else respect X-Forwarded-Proto so fetch is same scheme as page (avoids mixed-content block).
-  const protocol = req.get("x-forwarded-proto") === "https" ? "https" : req.protocol;
+  const protocol =
+    req.get("x-forwarded-proto") === "https" ? "https" : req.protocol;
   const apiBase = process.env.API_URL || `${protocol}://${req.get("host")}`;
   const actionUrl = `${apiBase.replace(/\/+$/, "")}/api/auth/reset-password/${encodeURIComponent(token)}`;
   const loginUrl = process.env.CLIENT_URL || "http://localhost:5173";
@@ -379,7 +378,8 @@ exports.resetPassword = async (req, res) => {
 
     res.json({ message: "Password reset successfully. You can now sign in." });
   } catch (error) {
-    const message = process.env.NODE_ENV === "production" ? "Server error" : error.message;
+    const message =
+      process.env.NODE_ENV === "production" ? "Server error" : error.message;
     res.status(500).json({ message });
   }
 };
