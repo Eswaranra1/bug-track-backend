@@ -6,7 +6,8 @@ const { Resend } = require("resend");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const FROM_EMAIL = process.env.RESEND_FROM || "BugTrack <onboarding@resend.dev>";
+const FROM_EMAIL =
+  process.env.RESEND_FROM || "BugTrack <onboarding@resend.dev>";
 
 /** Send email via Resend. Throws if RESEND_API_KEY is missing or send fails. */
 async function sendEmail({ to, subject, html, text }) {
@@ -28,7 +29,10 @@ async function sendEmail({ to, subject, html, text }) {
 exports.testEmail = async (req, res) => {
   try {
     const to = process.env.RESEND_TEST_TO || process.env.EMAIL_USER;
-    if (!to) return res.status(400).send("Set RESEND_TEST_TO or EMAIL_USER in .env for test recipient.");
+    if (!to)
+      return res
+        .status(400)
+        .send("Set RESEND_TEST_TO or EMAIL_USER in .env for test recipient.");
     await sendEmail({
       to,
       subject: "BugTrack Email Test",
@@ -93,20 +97,26 @@ exports.forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       // Return success anyway to avoid email enumeration
-      return res.json({ message: "If that email exists, a reset link has been sent." });
+      return res.json({
+        message: "If that email exists, a reset link has been sent.",
+      });
     }
 
     // Generate a secure random token
     const rawToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(rawToken)
+      .digest("hex");
 
     // Save hashed token + 1-hour expiry to user
-    user.resetPasswordToken   = hashedToken;
+    user.resetPasswordToken = hashedToken;
     user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
     await user.save();
 
     // Reset link points to backend (e.g. https://bug-track-backend-jz4l.onrender.com/api/auth/reset-password/TOKEN)
-    const apiBase = process.env.API_URL || `${req.protocol}://${req.get("host")}`;
+    const apiBase =
+      process.env.API_URL || `${req.protocol}://${req.get("host")}`;
     const resetUrl = `${apiBase.replace(/\/+$/, "")}/api/auth/reset-password/${rawToken}`;
 
     const html = `
@@ -135,12 +145,21 @@ exports.forgotPassword = async (req, res) => {
           </p>
         </div>
       `;
-    await sendEmail({ to: user.email, subject: "Reset your BugTrack password", html });
+    await sendEmail({
+      to: user.email,
+      subject: "Reset your BugTrack password",
+      html,
+    });
 
     res.json({ message: "If that email exists, a reset link has been sent." });
   } catch (error) {
     console.error("Forgot password error:", error.message);
-    res.status(500).json({ message: "Failed to send reset email. Check RESEND_API_KEY and Resend dashboard." });
+    res
+      .status(500)
+      .json({
+        message:
+          "Failed to send reset email. Check RESEND_API_KEY and Resend dashboard.",
+      });
   }
 };
 
@@ -172,8 +191,9 @@ exports.getResetPasswordPage = (req, res) => {
     .input-wrap { position: relative; }
     .input-wrap input { width: 100%; padding: 12px 44px 12px 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: #f1f5f9; font-size: 15px; }
     .input-wrap input:focus { outline: none; border-color: #6366f1; }
-    .toggle-vis { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px; }
+    .toggle-vis { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #94a3b8; cursor: pointer; padding: 4px; display: inline-flex; align-items: center; justify-content: center; }
     .toggle-vis:hover { color: #f1f5f9; }
+    .toggle-vis svg { width: 20px; height: 20px; }
     .btn { width: 100%; padding: 14px; border-radius: 10px; border: none; background: linear-gradient(135deg,#6366f1,#8b5cf6); color: #fff; font-weight: 600; cursor: pointer; font-size: 15px; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .msg { margin-top: 14px; font-size: 14px; }
@@ -196,14 +216,14 @@ exports.getResetPasswordPage = (req, res) => {
         <label for="password">New password</label>
         <div class="input-wrap">
           <input type="password" id="password" name="password" placeholder="New password" minlength="6" required autocomplete="new-password">
-          <button type="button" class="toggle-vis" id="t1" aria-label="Show password">👁</button>
+          <button type="button" class="toggle-vis" id="t1" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
       </div>
       <div class="field">
         <label for="confirm">Confirm password</label>
         <div class="input-wrap">
           <input type="password" id="confirm" name="confirm" placeholder="Confirm password" minlength="6" required autocomplete="new-password">
-          <button type="button" class="toggle-vis" id="t2" aria-label="Show password">👁</button>
+          <button type="button" class="toggle-vis" id="t2" aria-label="Show password"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
       </div>
       <button type="submit" class="btn" id="btn">Reset Password →</button>
@@ -219,13 +239,17 @@ exports.getResetPasswordPage = (req, res) => {
     var conf = document.getElementById("confirm");
     var actionUrl = ${JSON.stringify(actionUrl)};
     var loginUrl = ${JSON.stringify(loginUrl)};
+    var eyeOpen = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+    var eyeSlash = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
     document.getElementById("t1").onclick = function() {
       pw.type = pw.type === "password" ? "text" : "password";
-      this.textContent = pw.type === "password" ? "👁" : "🙈";
+      this.innerHTML = pw.type === "password" ? eyeOpen : eyeSlash;
+      this.setAttribute("aria-label", pw.type === "password" ? "Show password" : "Hide password");
     };
     document.getElementById("t2").onclick = function() {
       conf.type = conf.type === "password" ? "text" : "password";
-      this.textContent = conf.type === "password" ? "👁" : "🙈";
+      this.innerHTML = conf.type === "password" ? eyeOpen : eyeSlash;
+      this.setAttribute("aria-label", conf.type === "password" ? "Show password" : "Hide password");
     };
     form.onsubmit = function(e) {
       e.preventDefault();
@@ -240,19 +264,27 @@ exports.getResetPasswordPage = (req, res) => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: p })
       })
-      .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+      .then(function(r) {
+        return r.text().then(function(text) {
+          var data = {};
+          try { data = text ? JSON.parse(text) : {}; } catch (e) { data = { raw: text }; }
+          return { ok: r.ok, status: r.status, data: data };
+        });
+      })
       .then(function(r) {
         if (r.ok) {
           msg.textContent = "Password reset successfully. Redirecting to sign in…";
           msg.className = "msg ok";
           setTimeout(function() { window.location.href = loginUrl; }, 2000);
         } else {
-          msg.textContent = r.data.message || "Something went wrong.";
+          var message = (r.data && r.data.message) || (r.status === 0 ? "Network error. Please check your connection." : "Something went wrong. (" + r.status + ")");
+          msg.textContent = message;
           msg.className = "msg err";
           btn.disabled = false;
         }
       })
-      .catch(function() {
+      .catch(function(err) {
+        console.error("Reset password request failed:", err);
         msg.textContent = "Network error. Try again.";
         msg.className = "msg err";
         btn.disabled = false;
@@ -271,24 +303,28 @@ exports.resetPassword = async (req, res) => {
     const { password } = req.body;
 
     if (!password || password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+      return res
+        .status(400)
+        .json({ message: "Password must be at least 6 characters" });
     }
 
     // Hash the incoming raw token to compare with DB
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
     const user = await User.findOne({
-      resetPasswordToken:   hashedToken,
+      resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: Date.now() }, // must not be expired
     });
 
     if (!user) {
-      return res.status(400).json({ message: "Reset link is invalid or has expired." });
+      return res
+        .status(400)
+        .json({ message: "Reset link is invalid or has expired." });
     }
 
     // Update password and clear token fields
-    user.password             = await bcrypt.hash(password, 10);
-    user.resetPasswordToken   = undefined;
+    user.password = await bcrypt.hash(password, 10);
+    user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
 
