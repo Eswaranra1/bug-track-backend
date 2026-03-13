@@ -30,17 +30,34 @@ exports.testEmail = async (req, res) => {
   try {
     const to = process.env.RESEND_TEST_TO || process.env.EMAIL_USER;
     if (!to)
-      return res
-        .status(400)
-        .send("Set RESEND_TEST_TO or EMAIL_USER in .env for test recipient.");
+      return res.status(400).json({
+        message: "Set RESEND_TEST_TO or EMAIL_USER in .env for test recipient.",
+      });
     await sendEmail({
       to,
       subject: "BugTrack Email Test",
       text: "Email working!",
     });
-    res.send("Email sent successfully");
+    res.json({ message: "Email sent successfully" });
   } catch (err) {
-    res.status(500).send(err.message);
+    const message =
+      process.env.NODE_ENV === "production" ? "Server error" : err.message;
+    res.status(500).json({ message });
+  }
+};
+
+/* ── Current user (for frontend) ───────────────────────────── */
+exports.getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("name email").lean();
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ id: req.user.id, ...user });
+  } catch (error) {
+    const message =
+      process.env.NODE_ENV === "production"
+        ? "Server error"
+        : error.message || "Server error";
+    res.status(500).json({ message });
   }
 };
 
@@ -58,9 +75,11 @@ exports.register = async (req, res) => {
     const user = new User({ name, email, password: hashedPassword });
     await user.save();
 
-    res.status(200).json({ message: "User registered successfully" });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    const message =
+      process.env.NODE_ENV === "production" ? "Server error" : error.message;
+    res.status(500).json({ message });
   }
 };
 
@@ -85,7 +104,9 @@ exports.login = async (req, res) => {
 
     res.json({ token });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    const message =
+      process.env.NODE_ENV === "production" ? "Server error" : error.message;
+    res.status(500).json({ message });
   }
 };
 
@@ -358,6 +379,7 @@ exports.resetPassword = async (req, res) => {
 
     res.json({ message: "Password reset successfully. You can now sign in." });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    const message = process.env.NODE_ENV === "production" ? "Server error" : error.message;
+    res.status(500).json({ message });
   }
 };

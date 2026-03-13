@@ -1,0 +1,13 @@
+/**
+ * Application error with HTTP status. Throw in controllers; global handler will send response.
+ */
+class AppError extends Error {
+  constructor(message, statusCode = 500) {
+    super(message);
+    this.statusCode = statusCode;
+    this.status = statusCode;
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+module.exports = AppError;
