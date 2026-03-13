@@ -28,6 +28,8 @@ const bugSchema = new mongoose.Schema(
         end: { type: Date },
       },
     ],
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
   },
   { timestamps: true }
 );
@@ -37,5 +39,6 @@ bugSchema.index({ assignedTo: 1 });
 bugSchema.index({ teamId: 1 });
 bugSchema.index({ status: 1 });
 bugSchema.index({ createdAt: -1 });
+bugSchema.index({ isDeleted: 1 });
 
 module.exports = mongoose.model("Bug", bugSchema);

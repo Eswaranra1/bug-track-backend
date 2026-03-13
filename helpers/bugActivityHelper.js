@@ -9,6 +9,7 @@ const ACTION = {
   ATTACHMENT_ADDED: "ATTACHMENT_ADDED",
   TIME_UPDATED: "TIME_UPDATED",
   CLOSED: "CLOSED",
+  DELETED: "DELETED",
 };
 
 async function createBugActivity(bugId, action, userId, metadata = {}) {

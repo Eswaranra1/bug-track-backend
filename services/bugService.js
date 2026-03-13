@@ -20,21 +20,30 @@ function pick(obj, keys) {
   return out;
 }
 
+const NOT_DELETED = { isDeleted: { $ne: true } };
+
 exports.getVisibleBugs = async (userId, filters = {}) => {
   const teamIds = await teamRepository.findTeamIdsByUser(userId);
-  const query = {
-    $or: [
+  const { scope, teamId, assignedTo, priority, status, sort = "createdAt", order = "desc", page = 1, limit = 50 } = filters;
+
+  let query = { ...NOT_DELETED };
+  if (scope === "all") {
+    // Show all bugs for everyone (open to all users)
+  } else if (scope === "mine") {
+    query.assignedTo = userId;
+  } else if (scope === "created") {
+    query.createdBy = userId;
+  } else if (scope === "team" && teamIds.length) {
+    query.teamId = { $in: teamIds };
+  } else {
+    query.$or = [
       { createdBy: userId },
       { assignedTo: userId },
       ...(teamIds.length ? [{ teamId: { $in: teamIds } }] : []),
-    ],
-  };
-  const { scope, teamId, assignedTo, priority, status, sort = "createdAt", order = "desc", page = 1, limit = 50 } = filters;
-  if (scope === "mine") query.assignedTo = userId;
-  else if (scope === "created") query.createdBy = userId;
-  else if (scope === "team" && teamIds.length) query.teamId = { $in: teamIds };
+    ];
+  }
   if (teamId) query.teamId = teamId;
-  if (assignedTo) query.assignedTo = assignedTo;
+  if (scope !== "mine" && assignedTo) query.assignedTo = assignedTo;
   if (priority) query.priority = priority;
   if (status) query.status = status;
   const sortObj = { [sort]: order === "asc" ? 1 : -1 };
@@ -54,12 +63,7 @@ exports.getVisibleBugs = async (userId, filters = {}) => {
 
 exports.getBugByIdIfAllowed = async (bugId, userId) => {
   const bug = await bugRepository.findById(bugId);
-  if (!bug) return null;
-  const teamIds = await teamRepository.findTeamIdsByUser(userId);
-  const createdByMatch = bug.createdBy && (bug.createdBy._id?.toString() || bug.createdBy.toString()) === userId;
-  const assignedMatch = bug.assignedTo && (bug.assignedTo._id?.toString() || bug.assignedTo.toString()) === userId;
-  const teamMatch = bug.teamId && teamIds.some((id) => id.toString() === (bug.teamId._id?.toString() || bug.teamId.toString()));
-  if (!createdByMatch && !assignedMatch && !teamMatch) return null;
+  if (!bug || bug.isDeleted) return null;
   return bug;
 };
 
@@ -84,17 +88,7 @@ exports.createBug = async (userId, body) => {
 exports.updateBug = async (bugId, userId, body) => {
   const Bug = require("../models/Bug");
   const bug = await Bug.findById(bugId);
-  if (!bug) return null;
-  const teamIds = await teamRepository.findTeamIdsByUser(userId);
-  const canEdit =
-    bug.createdBy.toString() === userId ||
-    (bug.assignedTo && bug.assignedTo.toString() === userId) ||
-    (bug.teamId && teamIds.some((id) => id.toString() === bug.teamId.toString()));
-  if (!canEdit) {
-    const err = new Error("Not authorized to edit");
-    err.statusCode = 403;
-    throw err;
-  }
+  if (!bug || bug.isDeleted) return null;
   const updates = pick(body, ALLOWED_UPDATE_FIELDS);
   const prevAssigned = bug.assignedTo ? bug.assignedTo.toString() : null;
   const prevStatus = bug.status;
@@ -139,6 +133,7 @@ exports.deleteBugIfAllowed = async (bugId, userId) => {
   const Bug = require("../models/Bug");
   const bug = await Bug.findById(bugId);
   if (!bug) return false;
+  if (bug.isDeleted) return true; // already soft-deleted
   const teamIds = await teamRepository.findTeamIdsByUser(userId);
   const canDelete =
     bug.createdBy.toString() === userId ||
@@ -148,19 +143,15 @@ exports.deleteBugIfAllowed = async (bugId, userId) => {
     err.statusCode = 403;
     throw err;
   }
-  await bugRepository.deleteById(bugId);
+  await bugRepository.softDeleteById(bugId);
+  await createBugActivity(bugId, ACTION.DELETED, userId, { title: bug.title });
   return true;
 };
 
 /** Returns activities for a bug if the user can access it; otherwise null. Filters: user, action, search. */
 exports.getBugActivityIfAllowed = async (bugId, userId, filters = {}) => {
-  const bug = await bugRepository.findByIdLean(bugId, "createdBy assignedTo teamId");
-  if (!bug) return null;
-  const teamIds = await teamRepository.findTeamIdsByUser(userId);
-  const createdByMatch = (bug.createdBy && bug.createdBy.toString()) === userId;
-  const assignedMatch = bug.assignedTo && bug.assignedTo.toString() === userId;
-  const teamMatch = bug.teamId && teamIds.some((id) => id.toString() === bug.teamId.toString());
-  if (!createdByMatch && !assignedMatch && !teamMatch) return null;
+  const bug = await bugRepository.findByIdLean(bugId, "isDeleted");
+  if (!bug || bug.isDeleted) return null;
   const BugActivity = require("../models/BugActivity");
   const query = { bugId };
   if (filters.user) query.user = filters.user;
@@ -184,17 +175,7 @@ exports.getBugActivityIfAllowed = async (bugId, userId, filters = {}) => {
 exports.startWork = async (bugId, userId) => {
   const Bug = require("../models/Bug");
   const bug = await Bug.findById(bugId);
-  if (!bug) return null;
-  const teamIds = await teamRepository.findTeamIdsByUser(userId);
-  const canEdit =
-    bug.createdBy.toString() === userId ||
-    (bug.assignedTo && bug.assignedTo.toString() === userId) ||
-    (bug.teamId && teamIds.some((id) => id.toString() === bug.teamId.toString()));
-  if (!canEdit) {
-    const err = new Error("Not authorized");
-    err.statusCode = 403;
-    throw err;
-  }
+  if (!bug || bug.isDeleted) return null;
   const openLog = (bug.workLogs || []).find(
     (l) => l.userId.toString() === userId && !l.end
   );
@@ -213,17 +194,7 @@ exports.startWork = async (bugId, userId) => {
 exports.stopWork = async (bugId, userId) => {
   const Bug = require("../models/Bug");
   const bug = await Bug.findById(bugId);
-  if (!bug) return null;
-  const teamIds = await teamRepository.findTeamIdsByUser(userId);
-  const canEdit =
-    bug.createdBy.toString() === userId ||
-    (bug.assignedTo && bug.assignedTo.toString() === userId) ||
-    (bug.teamId && teamIds.some((id) => id.toString() === bug.teamId.toString()));
-  if (!canEdit) {
-    const err = new Error("Not authorized");
-    err.statusCode = 403;
-    throw err;
-  }
+  if (!bug || bug.isDeleted) return null;
   const logs = bug.workLogs || [];
   const openIndex = logs.findIndex(
     (l) => l.userId.toString() === userId && !l.end

@@ -46,3 +46,11 @@ exports.updateById = (id, updates) =>
     .lean();
 
 exports.deleteById = (id) => Bug.findByIdAndDelete(id);
+
+/** Soft delete: set isDeleted = true, deletedAt = now */
+exports.softDeleteById = (id) =>
+  Bug.findByIdAndUpdate(
+    id,
+    { isDeleted: true, deletedAt: new Date() },
+    { new: true }
+  ).lean();

@@ -14,6 +14,7 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const commentRoutes = require("./routes/commentRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 const activityRoutes = require("./routes/activityRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 
@@ -58,6 +59,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/activity", activityRoutes);
+app.use("/api/users", userRoutes);
 
 app.get("/", (req, res) => {
   res.send("BugTrack API Running");

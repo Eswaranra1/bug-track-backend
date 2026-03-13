@@ -5,26 +5,28 @@ const Bug = require("../models/Bug");
 const Team = require("../models/Team");
 const teamRepository = require("../repositories/teamRepository");
 
+const NOT_DELETED = { isDeleted: { $ne: true } };
+
 exports.getBugAnalytics = async (req, res) => {
   try {
     const userId = req.user.id;
     const scope = req.query.scope;
     const teamIds = await teamRepository.findTeamIdsByUser(userId);
-    let match;
-    if (scope === "mine") {
-      match = { assignedTo: userId };
+    let match = { ...NOT_DELETED };
+    if (scope === "all") {
+      // all bugs
+    } else if (scope === "mine") {
+      match.assignedTo = userId;
     } else if (scope === "created") {
-      match = { createdBy: userId };
+      match.createdBy = userId;
     } else if (scope === "team" && teamIds.length) {
-      match = { teamId: { $in: teamIds } };
+      match.teamId = { $in: teamIds };
     } else {
-      match = {
-        $or: [
-          { createdBy: userId },
-          { assignedTo: userId },
-          ...(teamIds.length ? [{ teamId: { $in: teamIds } }] : []),
-        ],
-      };
+      match.$or = [
+        { createdBy: userId },
+        { assignedTo: userId },
+        ...(teamIds.length ? [{ teamId: { $in: teamIds } }] : []),
+      ];
     }
 
     const [
